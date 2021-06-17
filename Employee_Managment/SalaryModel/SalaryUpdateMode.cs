@@ -15,5 +15,4 @@ namespace Employee_Managment.SalaryModel
         public int EmployeeSalary { get; set; }
         public int EmployeeId { get; set; }
     }
-
 }

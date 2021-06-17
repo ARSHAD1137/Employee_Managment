@@ -1,6 +1,7 @@
 ﻿using Employee_Managment.SalaryModel;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
@@ -66,6 +67,101 @@ namespace Employee_Managment
                 SalaryConnection.Close();
             }
             return salary;
+        }
+        public void InsertEmployeeRecord(Employee employee)
+        {
+            SqlConnection connection = ConnectionSetup();
+            employee.deduction = Convert.ToInt32(0.2 * employee.basicPay);
+            employee.taxablePay = employee.basicPay - employee.deduction;
+            employee.incomeTax = Convert.ToInt32(0.1 * employee.taxablePay);
+            employee.netPay = employee.basicPay - employee.incomeTax;
+            
+
+            string storedProcedure = "SpAddEmployeeDetails";
+            string storedProcedurePayroll = "sp_InsertPayrollDetails";
+            using (connection)
+            {
+                connection.Open();
+                SqlTransaction transaction;
+                transaction = connection.BeginTransaction("Insert Employee Transaction");
+                try
+                {
+                    SqlCommand sqlCommand = new SqlCommand(storedProcedure, connection, transaction);
+                    sqlCommand.CommandType = CommandType.StoredProcedure;
+                    sqlCommand.Parameters.AddWithValue("@StartDate", employee.startDate);
+                    sqlCommand.Parameters.AddWithValue("@EmployeeName", employee.name);
+                    sqlCommand.Parameters.AddWithValue("@Gender", employee.gender);
+                    sqlCommand.Parameters.AddWithValue("@PhoneNumber", employee.phoneNumber);
+                    sqlCommand.Parameters.AddWithValue("@Address", employee.address);
+                    SqlParameter outPutVal = new SqlParameter("@scopeIdentifier", SqlDbType.Int);
+                    outPutVal.Direction = ParameterDirection.Output;
+                    sqlCommand.Parameters.Add(outPutVal);
+
+                    sqlCommand.ExecuteNonQuery();
+                    SqlCommand sqlCommand1 = new SqlCommand(storedProcedurePayroll, connection, transaction);
+                    sqlCommand1.CommandType = CommandType.StoredProcedure;
+                    sqlCommand1.Parameters.AddWithValue("@ID", outPutVal.Value);
+                    sqlCommand1.Parameters.AddWithValue("@BasicPay", employee.basicPay);
+                    sqlCommand1.Parameters.AddWithValue("@Deduction", employee.deduction);
+                    sqlCommand1.Parameters.AddWithValue("@TaxablePay", employee.taxablePay);
+                    sqlCommand1.Parameters.AddWithValue("@IncomeTax", employee.incomeTax);
+                    sqlCommand1.Parameters.AddWithValue("@NetPay", employee.netPay);
+                    sqlCommand1.ExecuteNonQuery();
+                    transaction.Commit();
+                    connection.Close();
+                }
+
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    try
+                    {
+                        transaction.Rollback();
+                    }
+                    catch (Exception ex2)
+                    {
+
+                        Console.WriteLine(ex2.Message);
+                    }
+                }
+            }
+
+        }
+        public void AddEmployeeRecord(Employee employee)
+        {
+           SqlConnection Addconnection = ConnectionSetup();
+           string StoreEmp = "SpAddEmployeeDetails";
+           using (Addconnection)
+           {
+                Addconnection.Open();
+                SqlTransaction transaction;
+                transaction = Addconnection.BeginTransaction("Add Employee Details");
+                try
+                {
+                    SqlCommand sqlCommand = new SqlCommand(StoreEmp, Addconnection, transaction);
+                    sqlCommand.CommandType = CommandType.StoredProcedure;
+                    sqlCommand.Parameters.AddWithValue("@EmployeeName", employee.name);
+                    sqlCommand.Parameters.AddWithValue("@PhoneNumber", employee.phoneNumber);
+                    sqlCommand.Parameters.AddWithValue("@Gender", employee.gender);
+                    sqlCommand.Parameters.AddWithValue("@Address", employee.address);
+                    sqlCommand.Parameters.AddWithValue("@StartDate", employee.startDate);
+                    sqlCommand.Parameters.AddWithValue("@BasicPay", employee.basicPay);
+                    sqlCommand.Parameters.AddWithValue("@Deduction", employee.deduction);
+                    sqlCommand.Parameters.AddWithValue("@TaxablePay", employee.taxablePay);
+                    sqlCommand.Parameters.AddWithValue("@IncomeTax", employee.incomeTax);
+                    sqlCommand.Parameters.AddWithValue("@NetPay", employee.netPay);
+                }
+                catch (Exception e2)
+                {
+                    throw new Exception(e2.Message);
+                }
+                finally
+                {
+                    Addconnection.Close();
+                }
+
+           }
+
         }
     }
 
